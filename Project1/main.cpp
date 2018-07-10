@@ -1,16 +1,22 @@
+#define BOOST_SP_USE_QUICK_ALLOCATOR
+
 #include <iostream>
-#include <boost/shared_array.hpp>
+#include <ctime>
+#include <boost/shared_ptr.hpp>
 
 int main()
 {
-	boost::shared_array<int> p1{ new int{1} };
+	boost::shared_ptr<int> p;
+	std::time_t then = std::time(nullptr);
 
-	{
-		boost::shared_array<int> p2{ p1 };
-		p2[0] = 1;
-	}
+	for (auto i = 0; i < 1'000'000; ++i)
+		p.reset(new int{ i });
 
-	std::cout << p1[0] << '\n';
+	std::time_t now = std::time(nullptr);
+		
+	std::cout << "now: " << now << '\n'
+		<< "then: " << then << '\n'
+		<< "diff: " << now - then << '\n';
 
 	std::cin.get();
 	return 0;

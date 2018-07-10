@@ -1,15 +1,17 @@
 #include <iostream>
-#include <typeinfo>
-#include <boost/make_shared.hpp>
+#include <boost/shared_array.hpp>
 
 int main()
 {
-	auto p1 = boost::make_shared<int>(1);
-	std::cout << typeid(p1).name() << '\n';
+	boost::shared_array<int> p1{ new int{1} };
 
-	auto p2 = boost::make_shared<int[]>(10);
-	std::cout << typeid(p2).name() << '\n';
-	
+	{
+		boost::shared_array<int> p2{ p1 };
+		p2[0] = 1;
+	}
+
+	std::cout << p1[0] << '\n';
+
 	std::cin.get();
 	return 0;
 }

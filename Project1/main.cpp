@@ -1,32 +1,32 @@
 #include <iostream>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <functional>
-#include <thread>
+#include <boost/intrusive_ptr.hpp>
+#include <atlbase.h>
 
-void reset(boost::shared_ptr<int> &sh)
-{
-	sh.reset();
-}
+void intrusive_ptr_add_ref(IDispatch *pDispatch) { pDispatch->AddRef(); }
+void intrusive_ptr_release(IDispatch *pDispatch) { pDispatch->Release(); }
 
-void print(boost::weak_ptr<int> &w)
+void check_windows_folder()
 {
-	boost::shared_ptr<int> sh = w.lock();
-	if (sh)
-		std::cout << *sh << '\n';
+	CLSID clsid;
+	CLSIDFromProgID(CComBSTR{ "Scripting.FileSystemObject" }, &clsid);
+
+	void *ptr;
+	CoCreateInstance(clsid, 0, CLSCTX_INPROC_SERVER, __uuidof(IDispatch), &ptr);
+	boost::intrusive_ptr<IDispatch> disp{ static_cast<IDispatch *>(ptr), false };
+
+	CComDispatchDriver dd{ disp.get() };
+	CComVariant arg{ "C:\\Windows" };
+	CComVariant ret{ false };
+
+	dd.Invoke1(CComBSTR{ "FolderExists" }, &arg, &ret);
+	std::cout << std::boolalpha << (ret.boolVal != 0) << '\n';
 }
 
 int main()
 {
-	boost::shared_ptr<int> sh{ new int{99} };
-	boost::weak_ptr<int> w{ sh };
-
-	// undefined order
-	std::thread t1{ reset, std::ref(sh) };
-	std::thread t2{ print, std::ref(w) };
-
-	t1.join();
-	t2.join();
+	CoInitialize(nullptr);
+	check_windows_folder();
+	CoUninitialize();
 
 	std::cin.get();
 	return 0;

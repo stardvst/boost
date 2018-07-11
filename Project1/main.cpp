@@ -1,22 +1,32 @@
-#define BOOST_SP_USE_QUICK_ALLOCATOR
-
 #include <iostream>
-#include <ctime>
 #include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
+#include <functional>
+#include <thread>
+
+void reset(boost::shared_ptr<int> &sh)
+{
+	sh.reset();
+}
+
+void print(boost::weak_ptr<int> &w)
+{
+	boost::shared_ptr<int> sh = w.lock();
+	if (sh)
+		std::cout << *sh << '\n';
+}
 
 int main()
 {
-	boost::shared_ptr<int> p;
-	std::time_t then = std::time(nullptr);
+	boost::shared_ptr<int> sh{ new int{99} };
+	boost::weak_ptr<int> w{ sh };
 
-	for (auto i = 0; i < 1'000'000; ++i)
-		p.reset(new int{ i });
+	// undefined order
+	std::thread t1{ reset, std::ref(sh) };
+	std::thread t2{ print, std::ref(w) };
 
-	std::time_t now = std::time(nullptr);
-		
-	std::cout << "now: " << now << '\n'
-		<< "then: " << then << '\n'
-		<< "diff: " << now - then << '\n';
+	t1.join();
+	t2.join();
 
 	std::cin.get();
 	return 0;

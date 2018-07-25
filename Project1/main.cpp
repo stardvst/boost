@@ -1,37 +1,31 @@
 #include <iostream>
-#include <utility>
 #include <boost/scope_exit.hpp>
 
-template <typename T>
-struct scope_exit
+struct x
 {
-	scope_exit(T &&t) : m_t{ std::move(t) } {}
-	~scope_exit() { m_t(); }
-	T m_t;
-};
+	int i;
 
-template <typename T>
-scope_exit<T> make_scope_exit(T &&t)
-{
-	return scope_exit<T>{ std::move(t) };
-}
-
-int *foo()
-{
-	auto i = new int{ 10 };
-	auto cleanup = make_scope_exit([&i]() mutable
+	void foo()
 	{
-		delete i; i = nullptr;
-	});
-
-	std::cout << *i << '\n';
-	return i;
-}
+		i = 10;
+		BOOST_SCOPE_EXIT(void)
+		{
+			std::cout << "last\n";
+		} BOOST_SCOPE_EXIT_END
+		
+		BOOST_SCOPE_EXIT(this_)
+		{
+			this_->i = 20;
+			std::cout << "first\n";
+		} BOOST_SCOPE_EXIT_END
+	}
+};
 
 int main()
 {
-	int *j = foo();
-	std::cout << *j << '\n';
+	x obj;
+	obj.foo();
+	std::cout << obj.i << '\n';
 
 	std::cin.get();
 	return 0;

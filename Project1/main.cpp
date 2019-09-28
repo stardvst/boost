@@ -1,41 +1,55 @@
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point.hpp>
+#include <boost/geometry/geometries/box.hpp>
+
+#include <boost/geometry/index/rtree.hpp>
+#include <boost/foreach.hpp>
+
 #include <iostream>
-#include <string>
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/member.hpp>
+#include <vector>
 
-using namespace boost::multi_index;
-
-struct animal
-{
-	std::string name;
-	int legs;
-};
-
-using animal_multi = multi_index_container<animal,
-	indexed_by<
-	hashed_non_unique<member<animal, std::string, &animal::name>>,
-	hashed_non_unique<member<animal, int, &animal::legs>>
-	>
->;
+namespace bg = boost::geometry;
+namespace bgi = boost::geometry::index;
 
 int main()
 {
-	animal_multi animals;
-	animals.insert({ "cat", 4 });
-	animals.insert({ "shark", 0 });
-	animals.insert({ "spider", 8 });
-	animals.insert({ "scorpion", 8 });
+	using point = bg::model::point<float, 2, bg::cs::cartesian>;
+	using box = bg::model::box<point>;
+	using value = std::pair<box, unsigned>;
 
-	std::cout << animals.count("cat") << '\n';
+	bgi::rtree<value, bgi::quadratic<16>> rtree;
 
-	const animal_multi::nth_index<1>::type &legs_index = animals.get<1>();
-	std::cout << legs_index.count(8) << '\n';
+	for (unsigned idx = 0; idx < 10; ++idx)
+	{
+		const box bbox(point(idx + 0.0f, idx + 0.0f), point(idx + 0.5f, idx + 0.5f));
+		std::cout << bg::wkt<box>(bbox) << "\n";
+		rtree.insert(std::make_pair(bbox, idx));
+	}
 
-	//auto it = legs_index.find(4);
-	//legs_index.modify(it, [](animal &a) { a.name = "dog"; });
+	box query_box(point(0, 0), point(5, 5));
 
-	//std::cout << animals.count("dog") << '\n';
+	std::vector<value> result_s;
+	rtree.query(bgi::intersects(query_box), std::back_inserter(result_s));
+
+	// find 5 nearest values to a point
+	std::vector<value> result_n;
+	rtree.query(bgi::nearest(point(0, 0), 5), std::back_inserter(result_n));
+
+	// display results
+	std::cout << "\nspatial query box:" << std::endl;
+	std::cout << bg::wkt<box>(query_box) << std::endl;
+
+	std::cout << "\nspatial query result:" << std::endl;
+
+	BOOST_FOREACH(value const &v, result_s)
+		std::cout << bg::wkt<box>(v.first) << " - " << v.second << std::endl;
+
+	std::cout << "\nknn query point:" << std::endl;
+	std::cout << bg::wkt<point>(point(0, 0)) << std::endl;
+
+	std::cout << "\nknn query result:" << std::endl;
+	BOOST_FOREACH(value const &v, result_n)
+		std::cout << bg::wkt<box>(v.first) << " - " << v.second << std::endl;
 
 	std::cin.get();
 	return 0;

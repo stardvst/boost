@@ -1,41 +1,42 @@
-#include <cassert>
-#include <cstdlib>
-#include <cstdint>
 #include <iostream>
-#include <limits>
 #include <string>
-#include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
 
-using real_t = boost::multiprecision::number<boost::multiprecision::cpp_dec_float<10000>>;
+using namespace boost::multi_index;
 
-real_t operator"" _R(long double d)
+struct animal
 {
-	return real_t{ d };
-}
+	std::string name;
+	int legs;
+};
 
-real_t get_fibonacci(uintmax_t const n)
+using animal_multi = multi_index_container<animal,
+	indexed_by<
+	hashed_non_unique<member<animal, std::string, &animal::name>>,
+	hashed_non_unique<member<animal, int, &animal::legs>>
+	>
+>;
+
+int main()
 {
-	// Use Binet's formula, limited n to decimal for perf increase
-	if (n < 1)
-		return 0.0_R;
+	animal_multi animals;
+	animals.insert({ "cat", 4 });
+	animals.insert({ "shark", 0 });
+	animals.insert({ "spider", 8 });
+	animals.insert({ "scorpion", 8 });
 
-	static real_t const sqrt_five = sqrt(5.0_R);
-	static real_t const a_part = (1.0_R + sqrt_five) / 2.0_R;
-	static real_t const b_part = (1.0_R - sqrt_five) / 2.0_R;
+	std::cout << animals.count("cat") << '\n';
 
-	real_t const a = pow(a_part, n);
-	real_t const b = pow(b_part, n);
-	return round((a - b) / sqrt_five);
-}
+	const animal_multi::nth_index<1>::type &legs_index = animals.get<1>();
+	std::cout << legs_index.count(8) << '\n';
 
-int main(int argc, char **argv)
-{
-	//	assert( argc == 2 );
-	//
-	//	auto n = strtoull( argv[1], 0, 10 );
-	uint64_t n = 15;
-	std::cout << n << ": " << std::setprecision(std::numeric_limits<real_t>::max_digits10) << get_fibonacci(n) << '\n';
+	//auto it = legs_index.find(4);
+	//legs_index.modify(it, [](animal &a) { a.name = "dog"; });
+
+	//std::cout << animals.count("dog") << '\n';
 
 	std::cin.get();
-	return EXIT_SUCCESS;
+	return 0;
 }

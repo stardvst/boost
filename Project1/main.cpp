@@ -1,56 +1,51 @@
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point.hpp>
-#include <boost/geometry/geometries/box.hpp>
-
-#include <boost/geometry/index/rtree.hpp>
-#include <boost/foreach.hpp>
-
+#include <boost/config.hpp>
 #include <iostream>
 #include <vector>
+#include <string>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/tuple/tuple.hpp>
 
-namespace bg = boost::geometry;
-namespace bgi = boost::geometry::index;
+enum family
+{
+	Jeanie, Debbie, Rick, John, Amanda, Margaret, Benjamin, N
+};
 
 int main()
 {
-	using point = bg::model::point<float, 2, bg::cs::cartesian>;
-	using box = bg::model::box<point>;
-	using value = std::pair<box, unsigned>;
+	using namespace boost;
+	const char *name[] = { "Jeanie", "Debbie", "Rick", "John", "Amanda",
+	  "Margaret", "Benjamin"
+	};
 
-	bgi::rtree<value, bgi::quadratic<16>> rtree;
+	adjacency_list <> g(N);
+	add_edge(Jeanie, Debbie, g);
+	add_edge(Jeanie, Rick, g);
+	add_edge(Jeanie, John, g);
+	add_edge(Debbie, Amanda, g);
+	add_edge(Rick, Margaret, g);
+	add_edge(John, Benjamin, g);
 
-	for (unsigned idx = 0; idx < 10; ++idx)
+	graph_traits<adjacency_list<>>::vertex_iterator i, end;
+	graph_traits<adjacency_list<>>::adjacency_iterator ai, a_end;
+	property_map<adjacency_list<>, vertex_index_t >::type
+		index_map = get(vertex_index, g);
+
+	for (boost::tie(i, end) = vertices(g); i != end; ++i)
 	{
-		const box bbox(point(idx + 0.0f, idx + 0.0f), point(idx + 0.5f, idx + 0.5f));
-		std::cout << bg::wkt<box>(bbox) << "\n";
-		rtree.insert(std::make_pair(bbox, idx));
+		std::cout << name[get(index_map, *i)];
+		boost::tie(ai, a_end) = adjacent_vertices(*i, g);
+		if (ai == a_end)
+			std::cout << " has no children";
+		else
+			std::cout << " is the parent of ";
+		for (; ai != a_end; ++ai)
+		{
+			std::cout << name[get(index_map, *ai)];
+			if (boost::next(ai) != a_end)
+				std::cout << ", ";
+		}
+		std::cout << std::endl;
 	}
-
-	box query_box(point(0, 0), point(5, 5));
-
-	std::vector<value> result_s;
-	rtree.query(bgi::intersects(query_box), std::back_inserter(result_s));
-
-	// find 5 nearest values to a point
-	std::vector<value> result_n;
-	rtree.query(bgi::nearest(point(0, 0), 5), std::back_inserter(result_n));
-
-	// display results
-	std::cout << "\nspatial query box:" << std::endl;
-	std::cout << bg::wkt<box>(query_box) << std::endl;
-
-	std::cout << "\nspatial query result:" << std::endl;
-
-	BOOST_FOREACH(value const &v, result_s)
-		std::cout << bg::wkt<box>(v.first) << " - " << v.second << std::endl;
-
-	std::cout << "\nknn query point:" << std::endl;
-	std::cout << bg::wkt<point>(point(0, 0)) << std::endl;
-
-	std::cout << "\nknn query result:" << std::endl;
-	BOOST_FOREACH(value const &v, result_n)
-		std::cout << bg::wkt<box>(v.first) << " - " << v.second << std::endl;
-
 	std::cin.get();
-	return 0;
+	return EXIT_SUCCESS;
 }

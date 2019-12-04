@@ -8,15 +8,13 @@ int main()
 	enum { A, B, C, D, E, F, N };
 	const char *name = "ABCDEF";
 
-	using Graph = boost::adjacency_matrix<boost::directedS>;
+	using UGraph = boost::adjacency_matrix<boost::undirectedS>;
 
-	Graph g(N);
+	UGraph g(N);
 	boost::add_edge(B, C, g);
 	boost::add_edge(B, F, g);
 	boost::add_edge(C, A, g);
-	boost::add_edge(C, C, g);
 	boost::add_edge(D, E, g);
-	boost::add_edge(E, D, g);
 	boost::add_edge(F, A, g);
 
 	std::cout << "vertex set: ";

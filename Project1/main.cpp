@@ -1,34 +1,33 @@
-#include <boost/config.hpp>
 #include <iostream>
-#include <boost/graph/adjacency_matrix.hpp>
-#include <boost/graph/graph_utility.hpp>
+#include <boost/graph/edge_list.hpp>
 
 int main()
 {
-	enum { A, B, C, D, E, F, N };
-	const char *name = "ABCDEF";
+	enum { u, v, x, y, z, N };
+	char name[] = { 'u', 'v', 'x', 'y', 'z' };
 
-	using UGraph = boost::adjacency_matrix<boost::undirectedS>;
+	using Edge = std::pair<int, int>;
+	Edge edges[] = { Edge(u, y), Edge(u, x), Edge(u, v),
+		Edge(v, u),
+		Edge(x, y)/* #5 */, Edge(x, v),
+		Edge(y, v), Edge(y, z),
+		Edge(z, u), Edge(z, x)
+	};
 
-	UGraph g(N);
-	boost::add_edge(B, C, g);
-	boost::add_edge(B, F, g);
-	boost::add_edge(C, A, g);
-	boost::add_edge(D, E, g);
-	boost::add_edge(F, A, g);
+	using Graph = boost::edge_list<Edge *>;
+	Graph g(edges, edges + sizeof edges / sizeof Edge);
 
-	std::cout << "vertex set: ";
-	boost::print_vertices(g, name);
-	std::cout << '\n';
+	typename boost::graph_traits<boost::edge_list<Edge *>>::edge_iterator e, e_end;
+	boost::tie(e, e_end) = boost::edges(g);
+	std::cout << "all edges:" << '\n';
+	while (e != e_end)
+	{
+		std::cout << *e << '\n';
+		++e;
+	}
 
-	std::cout << "edge set: ";
-	boost::print_edges(g, name);
-	std::cout << '\n';
-
-	std::cout << "out-edges:\n";
-	boost::print_graph(g, name);
-	std::cout << '\n';
+	std::cout << "source vertex for edge #5: " << name[boost::source(5, g)] << '\n';
+	std::cout << "target vertex for edge #5: " << name[boost::target(5, g)] << '\n';
 
 	std::cin.get();
-	return EXIT_SUCCESS;
 }
